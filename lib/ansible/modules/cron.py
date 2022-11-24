@@ -56,14 +56,12 @@ options:
   cron_file:
     description:
       - If specified, uses this file instead of an individual user's crontab.
-        The assumption is that this file is exclusively managed by the module,
-        do not use if the file contains multiple entries, NEVER use for /etc/crontab.
       - If this is a relative path, it is interpreted with respect to I(/etc/cron.d).
+      - If it is absolute, it will typically be C(/etc/crontab).
       - Many linux distros expect (and some require) the filename portion to consist solely
         of upper- and lower-case letters, digits, underscores, and hyphens.
-      - Using this parameter requires you to specify the I(user) as well, unless I(state) is not I(present).
-      - Either this parameter or I(name) is required
-    type: path
+      - To use the I(cron_file) parameter you must specify the I(user) as well.
+    type: str
   backup:
     description:
       - If set, create a backup of the crontab before it is modified.
@@ -241,7 +239,6 @@ class CronTab(object):
         self.cron_cmd = self.module.get_bin_path('crontab', required=True)
 
         if cron_file:
-
             if os.path.isabs(cron_file):
                 self.cron_file = cron_file
                 self.b_cron_file = to_bytes(cron_file, errors='surrogate_or_strict')
@@ -613,10 +610,6 @@ def main():
     warnings = list()
 
     if cron_file:
-
-        if cron_file == '/etc/crontab':
-            module.fail_json(msg="Will not manage /etc/crontab via cron_file, see documentation.")
-
         cron_file_basename = os.path.basename(cron_file)
         if not re.search(r'^[A-Z0-9_-]+$', cron_file_basename, re.I):
             warnings.append('Filename portion of cron_file ("%s") should consist' % cron_file_basename +
